@@ -1,0 +1,10 @@
+llm_models:
+  OpenAI:
+    model: xxx
+    API_KEY: xxx
+  Anthropic:
+    model: xxx
+    API_KEY: xxx
+  Google:
+    model: xxx
+    API_KEY: xxx
