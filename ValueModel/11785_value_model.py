@@ -16,10 +16,6 @@ print(whoami())
 # print(dataset["train"][0:5])
 # dataset = dataset["train"][0:100]
 
-from transformers import AutoModel, AutoTokenizer, Trainer, TrainingArguments
-from datasets import load_dataset
-import torch
-import torch.nn as nn
 
 
 model_name = "meta-llama/Meta-Llama-3-8B"
