@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
 
-!pip install transformers accelerate datasets
-
-from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingArguments
-import torch
-import torch.nn as nn
-from datasets import load_dataset
-from huggingface_hub import login, whoami
 
 # Below is the inference phase. We can download the pre-trained model(we trained above) to use. 
 # I am thinking about maybe storing this weights file in S3 or another cloud storage platform.
