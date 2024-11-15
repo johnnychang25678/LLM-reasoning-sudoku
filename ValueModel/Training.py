@@ -1,3 +1,10 @@
+!pip install transformers accelerate datasets
+
+from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingArguments
+import torch
+import torch.nn as nn
+from datasets import load_dataset
+from huggingface_hub import login, whoami
 
 login("xxxxxxxxxxxxxxxxxxxxxxxxxxxx")
 print(whoami())
