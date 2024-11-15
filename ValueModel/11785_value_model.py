@@ -112,9 +112,10 @@ tokenizer.save_pretrained("llama3_regression_tokenizer")
 torch.save(model.state_dict(), "llama3_regression_model.pth")
 tokenizer.save_pretrained("llama3_regression_tokenizer")
 
-from transformers import AutoModel, AutoTokenizer
-import torch
-import torch.nn as nn
+# Below is the inference phase. We can download the pre-trained model(we trained above) to use. 
+# I am thinking about maybe storing this weights file in S3 or another cloud storage platform.
+# In this code when inference it still downloads the pre-trained model again to get its model structure,
+# However in the future maybe we can download only structure (exclude its weights), save more RAM during inference, and increase the batch size
 
 class RegressionPredictor:
     def __init__(self):
