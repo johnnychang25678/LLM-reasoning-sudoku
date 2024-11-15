@@ -8,7 +8,7 @@ import torch.nn as nn
 from datasets import load_dataset
 from huggingface_hub import login, whoami
 
-login("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")
+login("xxxxxxxxxxxxxxxxxxxxxxxxxxxx")
 print(whoami())
 
 # dataset = load_dataset("yelp_polarity")
