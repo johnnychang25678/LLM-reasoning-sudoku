@@ -10,8 +10,8 @@ class Node:
     def __init__(self, state, parent=None, action=None, untried_actions=None):
         # state representation: [["2", "4", "1", "*"],["*", "1", "3", "2"],["3", "1", "4", "2"],["1", "3", "2", "4"]]
         self.state = state
-        self.parent = parent
         self.action = action
+        self.parent = parent
         self.children = []
         self.visits = 0
         self.q_value = 0.0  # Estimated reward
@@ -34,7 +34,7 @@ class Node:
         return max_child
 
     def __str__(self):
-        return f"Action: {self.action}, State: {self.state}"
+        return f"Action: {self.action}, State: {self.state}, Q-value: {self.q_value}"
 
     def __repr__(self):
         return self.__str__()
@@ -83,6 +83,7 @@ class PolicyModel:
                 if self._check_state(cur_state, sudoku):
                     action = self._derive_action(cur_state, sudoku)
                     action_states.append((action, sudoku))
+        # [("action...", "new_state")]
         return action_states
 
     def _derive_action(self, cur_state, next_state):
@@ -160,7 +161,6 @@ class MCTS:
         current_node = root
         while not self.is_terminal(current_node.state) and current_node.is_fully_expanded():
             current_node = current_node.best_child(self.exploration_weight)
-
         # Step 2: Expansion
         if not self.is_terminal(current_node.state):
             if not current_node.untried_actions:
