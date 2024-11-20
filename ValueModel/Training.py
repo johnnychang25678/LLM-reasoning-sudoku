@@ -1,6 +1,6 @@
 !pip install transformers accelerate datasets
 
-from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingArguments
+from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingArguments, AutoModel
 import torch
 import torch.nn as nn
 from datasets import load_dataset
