@@ -1,9 +1,12 @@
 import numpy as np
 import random
 import json
+import requests
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from mcts_prompts import gen_actions_prompt, gen_is_terminal_prompt
+
+MODEL_NAME = "llama3:instruct"  # ollama naming
 
 
 class Node:
@@ -15,10 +18,12 @@ class Node:
         self.children = []
         self.visits = 0
         self.q_value = 0.0  # Estimated reward
-        self.untried_actions = untried_actions or []
+        self.untried_actions = untried_actions
 
     def is_fully_expanded(self):
         # if all actions are tried, the node is fully expanded
+        if not self.untried_actions:
+            return False
         return len(self.untried_actions) == 0
 
     def best_child(self, exploration_weight):
@@ -34,16 +39,17 @@ class Node:
         return max_child
 
     def __str__(self):
-        return f"Action: {self.action}, State: {self.state}, Q-value: {self.q_value}"
+        return f"---\nAction: {self.action}, State: {self.state}, Q-value: {self.q_value}\n---\n"
 
     def __repr__(self):
         return self.__str__()
 
 
 class PolicyModel:
-    def __init__(self, model_name):
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.llm = AutoModelForCausalLM.from_pretrained(model_name)
+    """Inference LLM by calling served llm api, currently using ollama"""
+
+    def __init__(self, api_url):
+        self.api_url = api_url
 
     def _check_state(self, cur_state, sudoku):
         """check if sudoku size is same as cur_state and if sudoku cells only consists of * or int"""
@@ -66,17 +72,24 @@ class PolicyModel:
         """Generate possible actions for a given Sudoku state by querying LLM."""
         # state:  "[[1, *, *], [*, 1, *], [*, 2, *]]"
         prompt = gen_actions_prompt(cur_state)
-        # TODO: not sure if this is the correct way to inference
-        inputs = self.tokenizer(prompt, return_tensors="pt")
-        outputs = self.llm.generate(**inputs)
-        response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        # print(f"[DEBUG] Sending prompt to API: {prompt}")
+        try:
+            response_data = self.request_helper(prompt)
+        except requests.RequestException as e:
+            print(f"API call failed: {e}")
+            return []
+
         action_states = []
         # response should be a json
         try:
-            next_states = json.loads(response)
-        except json.JSONDecodeError:
-            print("parse json error:", response)
+            llm_res = response_data["response"]
+            js = self.clean_json_helper(llm_res)
+            print("[DEBUG] json", js)
+            next_states = js["states"]
+        except (KeyError, TypeError):
+            print(f"Invalid API response: {response_data}")
             return []
+
         for next_state in next_states:
             if "rows" in next_state:
                 sudoku = next_state["rows"]
@@ -94,13 +107,18 @@ class PolicyModel:
                 after_value = next_state[i][j]
                 if before_value != after_value:
                     # Record the change
+                    action_str = ""
                     if before_value == "*":
                         action_str = f"Filled cell ({i+1},{j+1}) with {after_value}"
-                    elif after_value == "*":
-                        action_str = f"Emptied cell ({i+1},{j+1}) which was {before_value}"
-                    else:
-                        action_str = f"Changed cell ({i+1},{j+1}) from {before_value} to {after_value}"
-                    actions.append(action_str)
+                    # if empty or change cell, it violates sudoku rule, do we record it or not? TODO
+
+                    # elif after_value == "*":
+                    #     action_str = f"Emptied cell ({i+1},{j+1}) which was {before_value}"
+
+                    # else:
+                    #     action_str = f"Changed cell ({i+1},{j+1}) from {before_value} to {after_value}"
+                    if action_str != "":
+                        actions.append(action_str)
         # Combine all actions into a single description
         if actions:
             action_description = "; ".join(actions) + "."
@@ -112,20 +130,46 @@ class PolicyModel:
 
     def check_is_terminal(self, state):
         prompt = gen_is_terminal_prompt(state)
-        # TODO: not sure if this is the correct way to inference
-        inputs = self.tokenizer(prompt, return_tensors="pt")
-        outputs = self.llm.generate(**inputs)
-        response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        # response should be a json
         try:
-            is_solved = json.loads(response)
-        except json.JSONDecodeError:
-            print("parse json error:", response)
+            response_data = self.request_helper(prompt)
+        except requests.RequestException as e:
+            print(f"API call failed: {e}")
             return False
 
-        if "solved" in is_solved:
-            return is_solved["solved"]
-        return False
+        try:
+            llm_res = response_data["response"]
+            js = self.clean_json_helper(llm_res)
+            print("[DEBUG] json", js)
+            return js["solved"]
+        except KeyError:
+            print(f"Invalid API response: {response_data}")
+            return False
+
+    def request_helper(self, prompt):
+        """helper function to call api endpoint"""
+        try:
+            response = requests.post(
+                f"{self.api_url}/generate", json={
+                    "model": MODEL_NAME,
+                    "prompt": prompt,
+                    "format": "json",
+                    "stream": False
+                })
+            response.raise_for_status()
+            response_data = response.json()
+            # print(f"[DEBUG] API Response: {response_data}")
+            return response_data
+        except requests.RequestException as e:
+            raise e
+
+    def clean_json_helper(self, text: str):
+        """helper function to clean json respone from llama"""
+        cleaned_response = text.replace("\n", "").strip()
+        try:
+            parsed_data = json.loads(cleaned_response)
+            return parsed_data
+        except json.JSONDecodeError as e:
+            print(f"Failed to parse JSON: {e}")
 
 
 class ValueModel:
@@ -144,24 +188,35 @@ class MCTS:
         self.exploration_weight = exploration_weight
         self.max_simulate_rounds = max_simulate_rounds
 
-    def run(self, initial_state, num_simulations, dest=None):
-        root = Node(initial_state)
-        for _ in range(num_simulations):
-            self._run_simulation(root)
+    def _traverse_tree(self, node, dest):
+        """For printing all the nodes after simulation"""
+        if not node:
+            return
         if dest:
-            with open(dest, "w") as file:
+            with open(dest, "a") as file:
                 # Write the string representation of the Node
-                file.write(str(root))
+                file.write(str(node))
         else:
-            print(root)
+            print(str(node))
+        for child in node.children:
+            self._traverse_tree(child, dest)
+
+    def run(self, initial_state, num_simulations, dest=None):
+        root = Node(state=initial_state)
+        for i in range(num_simulations):
+            print("run simulation:", i)
+            self._run_simulation(root)
+            self._traverse_tree(root, dest)
 
     def _run_simulation(self, root: Node):
         """Perform one simulation of MCTS."""
         # Step 1: Selection
+        print("Step 1: Selection")
         current_node = root
         while not self.is_terminal(current_node.state) and current_node.is_fully_expanded():
             current_node = current_node.best_child(self.exploration_weight)
         # Step 2: Expansion
+        print("Step 2: Expansion")
         if not self.is_terminal(current_node.state):
             if not current_node.untried_actions:
                 current_node.untried_actions = self.generate_actions_and_states(
@@ -174,9 +229,11 @@ class MCTS:
                 current_node = new_node
 
         # Step 3: Simulation
+        print("Step 3: Simulation")
         reward = self.simulate(current_node.state)
 
         # Step 4: Backpropagation
+        print("Step 4: Backpropagation")
         self.backpropagate(current_node, reward)
 
     def is_terminal(self, state):
@@ -218,7 +275,9 @@ class MCTS:
 
 
 if __name__ == "__main__":
-    policy_model = PolicyModel("meta-llama/Meta-Llama-3-8B")
+    # policy_model = PolicyModel("meta-llama/Meta-Llama-3-8B")
+    api_url = "http://localhost:11434/api"
+    policy_model = PolicyModel(api_url)
     value_model = None
     mcts = MCTS(policy_model=policy_model, value_model=value_model)
     sudoku = [["1", "*", "*"], ["*", "1", "*"], ["*", "2", "*"]]

@@ -7,36 +7,26 @@ def gen_actions_prompt(state):
         {state}
         where * represents a cell to be filled in.
         Suggest the next possible states to solve this Sudoku. You can suggest more than one states you see fit. Do not repeat the same state.
-        Respond only with valid JSON following below schema:
-        Schema:
+        The sudoku cell should be filled with either str(int) or "*".
+        Respond only with valid JSON with below example:
         {{
-        "type": "object",
-        "properties": {{
-            "states": {{
-            "type": "array",
-            "items": {{
-                "type": "object",
-                "properties": {{
-                "rows": {{
-                    "type": "array",
-                    "items": {{
-                    "type": "array",
-                    "items": {{
-                        "type": "string"
-                    }}
-                    }}
-                }}
-                }},
-                "required": [
-                "rows"
+            "states": [
+                {{
+                "rows": [
+                    ["*", "*", "1"],
+                    ["*", "2", "3"],
+                    ["3", "*", "2"],
                 ]
-            }}
-            }}
-        }},
-        "required": [
-            "states"
-        ]
-        }}
+                }},
+                {{
+                "rows": [
+                    ["2", "*", "1"],
+                    ["1", "2", "3"],
+                    ["3", "*", "2"],
+                ]
+                }}
+            ]
+        }} 
         Do not write an introduction or summary.
         """
 
@@ -46,17 +36,9 @@ def gen_is_terminal_prompt(state):
         f"""
     Given the following Sudoku state: {state}
     where * represents a cell to be filled in.
-    Check if this Sudoku is solved correctly. Respond only with valid JSON following the schema below.
+    Check if this Sudoku is solved correctly. Respond only with valid JSON with below example:
     {{
-    "type": "object",
-    "properties": {{
-        "solved": {{
-        "type": "boolean"
-        }}
-    }},
-    "required": [
-        "solved"
-    ]
+        "solved": false
     }}
     Do not write an introduction or summary.
     """
