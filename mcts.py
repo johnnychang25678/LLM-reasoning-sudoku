@@ -95,7 +95,8 @@ class PolicyModel:
                 sudoku = next_state["rows"]
                 if self._check_state(cur_state, sudoku):
                     action = self._derive_action(cur_state, sudoku)
-                    action_states.append((action, sudoku))
+                    if action != "":
+                        action_states.append((action, sudoku))
         # [("action...", "new_state")]
         return action_states
 
@@ -110,8 +111,10 @@ class PolicyModel:
                     action_str = ""
                     if before_value == "*":
                         action_str = f"Filled cell ({i+1},{j+1}) with {after_value}"
-                    # if empty or change cell, it violates sudoku rule, do we record it or not? TODO
-
+                    else:
+                        # if empty or change cell, it violates sudoku rule, do we record it or not? TODO
+                        print("invalid action, throw away")
+                        return ""
                     # elif after_value == "*":
                     #     action_str = f"Emptied cell ({i+1},{j+1}) which was {before_value}"
 
