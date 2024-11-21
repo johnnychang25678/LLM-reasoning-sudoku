@@ -6,7 +6,7 @@ import requests
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from mcts_prompts import gen_actions_prompt, gen_is_terminal_prompt
 
-MODEL_NAME = "llama3:instruct"  # ollama naming
+MODEL_NAME = "llama3.1:70b-instruct-q4_0"  # ollama naming
 
 
 class Node:
