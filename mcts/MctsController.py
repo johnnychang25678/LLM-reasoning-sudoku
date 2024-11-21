@@ -41,7 +41,7 @@ class MctsController:
             logger.debug(f"Selection - Depth {depth}, Current node state: {current_node.state}")
             if current_node.is_terminal:
                 logger.debug("Selection - Found terminal node")
-                return start_node   
+                return current_node
             elif current_node.is_fully_expanded():
                 logger.debug("Selection - Node fully expanded, selecting best child")
                 current_node = self._select_best_child(current_node)
