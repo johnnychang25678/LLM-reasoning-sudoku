@@ -86,3 +86,71 @@ def gen_is_terminal_prompt(state):
 
         Do not write an introduction, summary, or explanation.
     """
+
+def gen_is_terminal_and_give_reward_prompt(state):
+    return \
+        f"""
+        Given the following Sudoku state:
+        {state}
+        where * represents a cell to be filled in.
+
+        **Tasks:**
+        1. Determine if the Sudoku state is a terminal state. A terminal state has:
+           - No empty cells (i.e., no * present in the grid).
+        2. If the state is not terminal:
+           - Provide a reason explaining why it is not terminal (e.g., "Cell at (row, column) is empty.").
+           - Assign a reward of 0.
+        3. If the state is terminal:
+           - Check if the Sudoku is solved correctly. A Sudoku is solved correctly if:
+             - Each row contains the numbers 1 through 3 exactly once.
+             - Each column contains the numbers 1 through 3 exactly once.
+           - Assign a reward of +1 if the Sudoku is solved correctly and -1 if it is not.
+           - Provide a reason, even if terminal, explaining correctness or violation of the rules.
+
+        **Schema Requirements:**
+        - Your response must be valid JSON.
+        - The JSON object must contain three keys: "terminal", "reward", and "reason".
+        - The value of "terminal" must be a boolean:
+          - `true` if the state is terminal (no empty cells).
+          - `false` if the state is not terminal (contains empty cells).
+        - The value of "reward" must be an integer:
+          - `1` if the state is terminal and correctly solved.
+          - `-1` if the state is terminal but not solved correctly.
+          - `0` if the state is not terminal.
+        - The value of "reason" must be a string explaining why the Sudoku is or is not terminal and, if terminal, why it is correct or incorrect.
+
+        **Examples:**
+        - Terminal and Correct Sudoku: 
+          [['1', '2', '3'], ['3', '1', '2'], ['2', '3', '1']] -> 
+          {{
+              "terminal": true,
+              "reward": 1,
+              "reason": "The Sudoku is solved correctly with no empty cells and no rule violations."
+          }}
+        - Terminal and Incorrect Sudoku: 
+          [['1', '2', '3'], ['3', '1', '2'], ['2', '3', '2']] -> 
+          {{
+              "terminal": true,
+              "reward": -1,
+              "reason": "The Sudoku is incorrect because the number 2 is repeated in the last column."
+          }}
+        - Non-terminal Sudoku: 
+          [['1', '*', '3'], ['3', '1', '2'], ['2', '3', '1']] -> 
+          {{
+              "terminal": false,
+              "reward": 0,
+              "reason": "Cell at (1, 2) is empty."
+          }}
+
+        Respond only with valid JSON following the schema. Example response:
+        {{
+            "terminal": false,
+            "reward": 0,
+            "reason": "Cell at (1, 2) is empty."
+        }}
+
+        Do not write an introduction, summary, or explanation.
+    """
+
+if __name__ == "__main__":
+    print(gen_is_terminal_and_give_reward_prompt([['1', '2', '3'], ['1', '2', '3'], ['2', '3', '1']]))
