@@ -1,4 +1,5 @@
 import random
+from mcts.LangchainOllamaPolicyModel import LangChainSudokuPolicyModel
 from mcts.PolicyModel import OllamaSudokuPolicyModel, PolicyModel
 from mcts.ValueModel import ValueModel
 from mcts.Node import Node, NodeFactory
@@ -118,7 +119,8 @@ if __name__ == "__main__":
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
     
-    policy_model = OllamaSudokuPolicyModel()
+    # policy_model = OllamaSudokuPolicyModel()
+    policy_model = LangChainSudokuPolicyModel(model_name="llama3.1:70b-instruct-q2_K")
     node_factory = NodeFactory(policy_model)
     controller = MctsController(policy_model=policy_model, value_model=None, exploration_weight=1.0, max_simulate_depth=50, node_factory=node_factory)
     print(controller.run([['1', '*', '*'], ['*', '1', '*'], ['*', '2', '*']], 100))
