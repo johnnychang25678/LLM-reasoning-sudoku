@@ -1,5 +1,5 @@
 import random
-from mcts.LangchainOllamaPolicyModel import LangChainSudokuPolicyModel
+from mcts.LangchainPolicyModel.LangchainOllamaPolicyModel import LangChainSudokuPolicyModel
 from mcts.PolicyModel import OllamaSudokuPolicyModel, PolicyModel
 from mcts.ValueModel import ValueModel
 from mcts.Node import Node, NodeFactory
