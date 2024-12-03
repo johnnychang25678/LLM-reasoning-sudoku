@@ -72,7 +72,7 @@ class SudokuPrompter(PrompterBase):
 
         if state_check_result.solution_found:
             msg_tmpl = """Fantastic! You have found the solution {}!"""
-            role, new_msg_content = None, msg_tmpl.format(
+            role, new_msg_content = "user", msg_tmpl.format(
                 json.dumps(state_check_result.rows))
             solution_found, curr_state_is_valid = True, True
         elif state_check_result.is_valid:

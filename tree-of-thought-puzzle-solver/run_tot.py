@@ -3,6 +3,7 @@ from common.config import Config
 from tot.tot import TreeOfThought
 import json
 import argparse
+import os
 
 #
 # Example Sudoku problems:
@@ -10,9 +11,13 @@ import argparse
 # '[[1, *, *, 2], [*, 1, *, 4], [*, 2, *, *], [*, *, 4, *]]'
 #
 
+from dotenv import load_dotenv
+
+load_dotenv(".env")
+
 
 if __name__ == "__main__":
-
+    # jprint(os.environ["LANGCHAIN_PROJECT"])
     # Initialize parser
     parser = argparse.ArgumentParser()
 
