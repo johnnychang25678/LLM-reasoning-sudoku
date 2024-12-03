@@ -19,7 +19,7 @@ class PolicyModel:
         return NotImplemented
 
 class OllamaSudokuPolicyModel(PolicyModel):
-    def __init__(self, api_endpoint: str = "http://localhost:11434/api", model_name: str = "llama3.1:70b-instruct-q4_0"):
+    def __init__(self, api_endpoint: str = "http://localhost:11434/api", model_name: str = "llama3.1:70b-instruct-q2_K"):
         self.api_endpoint = api_endpoint
         self.model_name = model_name
 
