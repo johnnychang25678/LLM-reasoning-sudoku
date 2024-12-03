@@ -1,5 +1,8 @@
-from langchain_ollama.llms import OllamaLLM
+from langchain_openai import AzureChatOpenAI
 import logging
+from dotenv import load_dotenv
+
+load_dotenv("dev.env")
 
 from mcts.LangchainPolicyModel.LangchainCallbackHandler import LoggingCallbackHandler
 from mcts.LangchainPolicyModel.chain import (
@@ -7,32 +10,44 @@ from mcts.LangchainPolicyModel.chain import (
     get_terminal_chain,
     get_terminal_reward_chain
 )
-
-from mcts.LangchainPolicyModel.jsonParser import parse_json
-
+from mcts.LangchainPolicyModel.jsonParser import parse_ai_message
 logger = logging.getLogger(__name__)
 
-class LangchainOllamaSudokuPolicyModel:
-    def __init__(self, model_name="llama3.1:70b-instruct-q4_0", callback_handler=None):
+class LangchainGptSudokuPolicyModel:
+    def __init__(self, callback_handler=None):
         """
         Initialize the model with LangChain's Ollama and LangSmith for observability.
         """
         if callback_handler:
-            self.llm = OllamaLLM(
-                model=model_name,
+            # self.llm = OllamaLLM(
+            #     model=model_name,
+            #     callbacks=[callback_handler]
+            # )
+            # logger.info(f"Using callback handler: {callback_handler}")
+            self.llm = AzureChatOpenAI(
+                azure_deployment="gpt-4o",  # or your deployment
+                api_version="2024-02-15-preview",  # or your api version
+                temperature=0,
+                max_tokens=None,
+                timeout=None,
+                max_retries=2,
                 callbacks=[callback_handler]
             )
-            logger.info(f"Using callback handler: {callback_handler}")
         else:
-            self.llm = OllamaLLM(
-                model=model_name,
+            self.llm = AzureChatOpenAI(
+                azure_deployment="gpt-4o",
+                api_version="2024-02-15-preview",
+                temperature=0,
+                max_tokens=None,
+                timeout=None,
+                max_retries=2,
             )
             logger.info(f"Not using callback handler")
         
         # Initialize chains with existing prompts
-        self.actions_chain = get_actions_chain(self.llm, parse_json)
-        self.terminal_chain = get_terminal_chain(self.llm, parse_json)
-        self.terminal_reward_chain = get_terminal_reward_chain(self.llm, parse_json)
+        self.actions_chain = get_actions_chain(self.llm, parse_ai_message)
+        self.terminal_chain = get_terminal_chain(self.llm, parse_ai_message)
+        self.terminal_reward_chain = get_terminal_reward_chain(self.llm, parse_ai_message)
     
     def generate_actions_and_states(self, state):
         try:
@@ -120,7 +135,6 @@ if __name__ == "__main__":
 
 
     policy_model = LangChainSudokuPolicyModel(
-        model_name="llama3.1:70b-instruct-q2_K",
         callback_handler=LoggingCallbackHandler()
     )
     

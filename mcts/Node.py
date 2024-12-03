@@ -1,6 +1,6 @@
 import numpy as np
 
-from mcts.PolicyModel import PolicyModel
+from mcts.OllamaPolicyModel.OllamaPolicyModel import PolicyModel
 
 
 class Node:
