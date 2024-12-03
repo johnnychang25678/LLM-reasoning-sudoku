@@ -4,7 +4,6 @@ import logging
 from mcts.LangchainPolicyModel.LangchainCallbackHandler import LoggingCallbackHandler
 from mcts.LangchainPolicyModel.chain import (
     get_actions_chain,
-    get_terminal_chain,
     get_terminal_reward_chain
 )
 

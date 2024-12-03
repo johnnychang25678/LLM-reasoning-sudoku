@@ -7,7 +7,6 @@ load_dotenv("dev.env")
 from mcts.LangchainPolicyModel.LangchainCallbackHandler import LoggingCallbackHandler
 from mcts.LangchainPolicyModel.chain import (
     get_actions_chain,
-    get_terminal_chain,
     get_terminal_reward_chain
 )
 from mcts.LangchainPolicyModel.jsonParser import parse_ai_message
@@ -46,7 +45,6 @@ class LangchainGptSudokuPolicyModel:
         
         # Initialize chains with existing prompts
         self.actions_chain = get_actions_chain(self.llm, parse_ai_message)
-        self.terminal_chain = get_terminal_chain(self.llm, parse_ai_message)
         self.terminal_reward_chain = get_terminal_reward_chain(self.llm, parse_ai_message)
     
     def generate_actions_and_states(self, state):

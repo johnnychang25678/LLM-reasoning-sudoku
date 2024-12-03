@@ -1,4 +1,5 @@
 *.env
+mcts_results
 
 __pycache__
 # General
