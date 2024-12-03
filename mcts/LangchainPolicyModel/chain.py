@@ -9,18 +9,18 @@ def get_actions_chain(llm: BaseLLM, parser):
         template=gen_actions_prompt,
         input_variables=["state"],
     )
-    return prompt | llm | parser
+    return (prompt | llm | parser).with_config({"tags": ["actions_chain", "mcts"]})
 
 def get_terminal_chain(llm: BaseLLM, parser):
     prompt = PromptTemplate(
         template=is_terminal_prompt,
         input_variables=["state"],
     )
-    return prompt | llm | parser
+    return (prompt | llm | parser).with_config({"tags": ["terminal_chain", "mcts"]})
 
 def get_terminal_reward_chain(llm: BaseLLM, parser):
     prompt = PromptTemplate(
         template=is_terminal_and_give_reward_prompt,
         input_variables=["state"],
     )
-    return prompt | llm | parser
+    return (prompt | llm | parser).with_config({"tags": ["terminal_reward_chain", "mcts"]})
