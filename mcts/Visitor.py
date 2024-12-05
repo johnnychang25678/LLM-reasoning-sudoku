@@ -1,4 +1,5 @@
 import csv
+import os
 
 class MCTSVisitor:
     def __init__(self):
@@ -19,6 +20,7 @@ class MCTSVisitor:
         return self.nodes
 
     def export_to_csv(self, file_path):
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, mode='w', newline='') as csv_file:
             fieldnames = ['state', 'q_value']
             writer = csv.DictWriter(csv_file, fieldnames=fieldnames)

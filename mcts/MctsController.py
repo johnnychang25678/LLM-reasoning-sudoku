@@ -1,6 +1,7 @@
 import random
 from mcts.LangchainPolicyModel.LangchainGptPolicyModel import LangchainGptSudokuPolicyModel
 from mcts.LangchainPolicyModel.LangchainOllamaPolicyModel import LangchainOllamaSudokuPolicyModel
+from mcts.MctsObserver.BaseObserver import BaseMctsObserver
 from mcts.OllamaPolicyModel.OllamaPolicyModel import OllamaSudokuPolicyModel, PolicyModel
 from mcts.ValueModel import ValueModel
 from mcts.Node import Node, NodeFactory
@@ -9,12 +10,21 @@ import logging
 logger = logging.getLogger(__name__)
 
 class MctsController:
-    def __init__(self, policy_model: PolicyModel, value_model: ValueModel, exploration_weight=1.0, max_simulate_depth=50, node_factory: NodeFactory = None):
+    def __init__(
+            self, 
+            policy_model: PolicyModel, 
+            value_model: ValueModel, 
+            exploration_weight=1.0, 
+            max_simulate_depth=50, 
+            node_factory: NodeFactory = None,
+            observers: List[BaseMctsObserver] = []
+        ):
         self.policy_model = policy_model
         self.value_model = value_model
         self.exploration_weight = exploration_weight
         self.max_simulate_depth = max_simulate_depth
         self.node_factory = node_factory
+        self.observers = observers
 
     def run(self, initial_state: List[List[str]], iterations: int):
         logger.info(f"Starting MCTS with {iterations} iterations")
@@ -26,6 +36,9 @@ class MctsController:
         for i in range(iterations):
             logger.info(f"\nStarting iteration {i+1}/{iterations}")
             self._run_iteration(root_node)
+            if self.observers:
+                for observer in self.observers:
+                    observer.observe_iteration_end(i, root_node)
 
         logger.info(f"MCTS completed. Root node visits: {root_node.visits}")
         return root_node
