@@ -5,24 +5,33 @@
 # I am thinking about maybe storing this weights file in S3 or another cloud storage platform.
 # In this code when inference it still downloads the pre-trained model again to get its model structure,
 # However in the future maybe we can download only structure (exclude its weights), save more RAM during inference, and increase the batch size
+from transformers import AutoModel, AutoTokenizer
+import torch
+import torch.nn as nn
 
 class RegressionPredictor:
     def __init__(self):
-        self.tokenizer = AutoTokenizer.from_pretrained("llama3_regression_tokenizer")
+        model_name = "meta-llama/Meta-Llama-3-8B-Instruct"
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-        model_name = "meta-llama/Meta-Llama-3-8B"
         self.base_model = AutoModel.from_pretrained(model_name)
 
         if self.tokenizer.pad_token is None:
             self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
             self.tokenizer.pad_token = '[PAD]'
-        self.base_model.resize_token_embeddings(len(self.tokenizer))
+            self.base_model.resize_token_embeddings(len(self.tokenizer))
+
+        for param in self.base_model.parameters():
+            param.requires_grad = False
 
         class RegressionModel(nn.Module):
             def __init__(self, base_model):
                 super(RegressionModel, self).__init__()
                 self.base_model = base_model
-                self.regression_head = nn.Linear(base_model.config.hidden_size, 1)
+                self.regression_head = nn.Sequential(
+                    nn.Linear(base_model.config.hidden_size, 1),
+                    nn.Tanh()
+                )
 
             def forward(self, input_ids, attention_mask=None, **kwargs):
                 outputs = self.base_model(input_ids=input_ids, attention_mask=attention_mask)
@@ -30,14 +39,14 @@ class RegressionPredictor:
                 regression_output = self.regression_head(pooled_output)
                 return regression_output.squeeze(-1)
 
-
         self.model = RegressionModel(self.base_model)
 
-        self.model.load_state_dict(torch.load("llama3_regression_model.pth"))
+        self.model.regression_head.load_state_dict(torch.load("regression_head.pth"))
+
+        self.model.eval()
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
-        self.model.eval()
 
     def predict(self, input_texts):
         inputs = self.tokenizer(
@@ -56,7 +65,9 @@ class RegressionPredictor:
 
         return predicted_values
 
-#predictor = RegressionPredictor()
-input_texts = ["This product exceeded my expectations.", "Not worth the price."]
+predictor = RegressionPredictor()
+
+input_texts = ["[['1', '3', '2'], ['2', '1', '3'], ['3', '1', '3']]", "[['1', '1', '1'], ['2', '1', '3'], ['3', '3', '3']]"]
+
 predicted_values = predictor.predict(input_texts)
 print("Predicted Values:", predicted_values)
