@@ -1,9 +1,9 @@
 import sys
 from common.config import Config
+from common.enums import *
 from tot.tot import TreeOfThought
 import json
 import argparse
-import os
 
 #
 # Example Sudoku problems:
@@ -23,6 +23,8 @@ if __name__ == "__main__":
 
     # Add arguments
     parser.add_argument("-data", required=True, type=str, help="data path")
+    parser.add_argument("-prompt_type", required=True,
+                        choices=["rule", "policy"])
 
     # Parse arguments
     args = parser.parse_args()
@@ -30,9 +32,11 @@ if __name__ == "__main__":
     # Use arguments
     # if args
     dimension = args.data.split("/")[-1][:3]
+    prompt_type = PromptGenType.RuleBased if args.prompt_type == "rule" else PromptGenType.PolicyModelBased
     path_to_config_yaml = "./config.yaml"
     config = Config(path_to_config_yaml)
-    tot = TreeOfThought(config)
+
+    tot = TreeOfThought(config, prompt_type)
     initial_prompt = f"please solve this {dimension} sudoku puzzle"
     try:
         with open(args.data) as f:

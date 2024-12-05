@@ -3,6 +3,7 @@ import random
 from actors.state import *
 from actors.checker import *
 from common.enums import PromptGenType
+from common.hyperparams import HyperParams
 
 
 class PrompterBase(object):
@@ -41,8 +42,50 @@ class SudokuPrompter(PrompterBase):
         elif self.prompt_generation_type == PromptGenType.NeuralNetworkBased:
             solution_found, solution, curr_state_is_valid, msgs = self._generate_prompt_neural_network_based(
                 conversation_history, rollback_steps)
+        elif self.prompt_generation_type == PromptGenType.PolicyModelBased:
+            solution_found, solution, curr_state_is_valid, msgs = self._generate_prompt_policy_model_based(
+                conversation_history, rollback_steps)
         else:
             raise "Invalid prompt_generation_type"
+        return solution_found, solution, curr_state_is_valid, msgs
+
+    def _generate_prompt_policy_model_based(self, conversation_history, rollback_steps):
+        self.checker = RuleBasedSudokuStateChecker(
+            self.state_manager)  # use the same checker
+        state_check_result = self.checker.check_current_state()
+        solution_found = False
+
+        if state_check_result.solution_found:
+            msg_tmpl = """Fantastic! You have found the solution {}!"""
+            role, new_msg_content = "user", msg_tmpl.format(
+                json.dumps(state_check_result.rows))
+            solution_found, curr_state_is_valid = True, True
+        elif state_check_result.is_valid:
+            new_msg_tmpl = """Please try to solve this Sudoku puzzle {}, return {} possible solutions.
+            In the next solutions you return, please just fill in a few cells since we will work together to solve the puzzle in multiple rounds of conversation. 
+            Please return your solutions strictly following valid JSON format in the following JSON schema: {{ "solutions": [{{ "rows": [] }}] }}"""
+            role, new_msg_content = "user", new_msg_tmpl.format(
+                state_check_result.rows, HyperParams.LeafCount)
+            solution_found, curr_state_is_valid = False, True
+        else:
+            new_msg_tmpl = """Unfortunately there is an error in your current solution {}. {} Let us try again starting from this Sudoku board: {}. Please return {} possible solutions. 
+            In the next solution you return, please just fill in a few cells since we will work together to solve the puzzle in multiple rounds of conversation. 
+            We do NOT expect you to solve the problem in a single shot. You can return intermediate solutions with unfilled cells marked by "*". 
+            Please return your solution strictly following valid JSON format in the following JSON schema: {{ "rows": [] }}"""
+            role, new_msg_content = "user", new_msg_tmpl.format(json.dumps(self.state_manager.get_current_state().tolist()),
+                                                                state_check_result.message,
+                                                                HyperParams.LeafCount,
+                                                                json.dumps(self.state_manager.get_state(rollback_steps).tolist()))
+            solution_found, curr_state_is_valid = False, False
+
+        conversation_history += "\nQ: {}".format(new_msg_content)
+        if self.include_chat_history_in_query:
+            msgs = self.llm_agent.compose_messages(
+                [role], [conversation_history[-self.max_llm_context_length:]])
+        else:
+            # configurable through config.yaml
+            msgs = self.llm_agent.compose_messages([role], [new_msg_content])
+        solution = state_check_result.rows
         return solution_found, solution, curr_state_is_valid, msgs
 
     def _generate_prompt_rule_based(self, conversation_history, rollback_steps):
