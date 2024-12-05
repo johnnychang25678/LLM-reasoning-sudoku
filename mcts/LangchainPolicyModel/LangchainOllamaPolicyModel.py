@@ -30,7 +30,6 @@ class LangchainOllamaSudokuPolicyModel:
         
         # Initialize chains with existing prompts
         self.actions_chain = get_actions_chain(self.llm, parse_json)
-        self.terminal_chain = get_terminal_chain(self.llm, parse_json)
         self.terminal_reward_chain = get_terminal_reward_chain(self.llm, parse_json)
     
     def generate_actions_and_states(self, state):
@@ -59,14 +58,6 @@ class LangchainOllamaSudokuPolicyModel:
         except Exception as e:
             logger.error(f"Error parsing actions and states: {e}")
             return []
-    
-    def check_is_terminal(self, state):
-        try:
-            response = self.terminal_chain.invoke({"state": state})
-            return response["solved"]
-        except Exception as e:
-            logger.error(f"Error during check_is_terminal: {e}")
-            return False
     
     def check_is_terminal_and_give_reward(self, state):
         try:
@@ -118,7 +109,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 
-    policy_model = LangChainSudokuPolicyModel(
+    policy_model = LangchainOllamaSudokuPolicyModel(
         model_name="llama3.1:70b-instruct-q2_K",
         callback_handler=LoggingCallbackHandler()
     )
