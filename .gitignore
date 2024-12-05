@@ -1,5 +1,6 @@
 *.env
 mcts_results
+*.zip
 
 __pycache__
 # General
