@@ -11,9 +11,10 @@ from actors.prompter import SudokuPrompter
 
 class TreeOfThought(object):
 
-    def __init__(self, config) -> None:
+    def __init__(self, config, prompt_type: PromptGenType) -> None:
         self.config = config
         self.llm_agent = LLMAgent(config)
+        self.prompt_type = prompt_type
 
     def run(self, user_input):
         max_num_rounds = HyperParams.MaxNumConversationRounds
@@ -21,7 +22,7 @@ class TreeOfThought(object):
         if not success:
             print("Failed to identify the problem type")
             return False, None
-        totExecutor = self._get_tot_executor(problem_type)
+        totExecutor = self._get_tot_executor(problem_type, self.prompt_type)
         if totExecutor is None:
             print("Problem type not supported yet")
             return False, None
@@ -51,9 +52,9 @@ class TreeOfThought(object):
         msgs = self.llm_agent.compose_messages([role], [msg_content])
         return msgs
 
-    def _get_tot_executor(self, problem_type: ProblemType):
+    def _get_tot_executor(self, problem_type: ProblemType, prompt_type: PromptGenType):
         if problem_type == ProblemType.Sudoku:
-            return TreeOfThoughtExecutorForSudoku(self.config)
+            return TreeOfThoughtExecutorForSudoku(self.config, prompt_type)
         elif problem_type == ProblemType.ThreeSAT:
             return TreeOfThoughtExecutorForThreeSAT()
         else:
@@ -62,9 +63,10 @@ class TreeOfThought(object):
 
 class TreeOfThoughtExecutorBase(object):
 
-    def __init__(self) -> None:
+    def __init__(self, prompt_type: PromptGenType) -> None:
         self.conversation_history = ""
         self.state_manager_visit_count_map = {}
+        self.prompt_type = prompt_type
 
     def run(self, user_input, max_num_rounds):
         messages = self.prompter.generate_initial_prompt(user_input)
@@ -74,11 +76,19 @@ class TreeOfThoughtExecutorBase(object):
             reply = self.llm_agent.get_reply(messages, temperature, max_tokens)
             self._incr_state_visit_count()
 
+            is_initial = i == 0
+
             self.conversation_history += "\nA: {}".format(reply)
 
             if self._should_repeat(reply):
                 continue
-            success, solution = self.parser.parse_llm_reply(reply)
+            success, solution = self.parser.parse_llm_reply(
+                reply, self.prompt_type, is_initial)
+            print("******** run_tot solution:", solution)
+            if self.prompt_type == PromptGenType.PolicyModelBased and not is_initial:
+                # TODO: use policy model to pick one
+                solution = solution[0]
+
             if not success:
                 print("Failed to extract solution from the reply, will retry")
                 continue  # retry
@@ -122,8 +132,8 @@ class TreeOfThoughtExecutorBase(object):
 
 class TreeOfThoughtExecutorForSudoku(TreeOfThoughtExecutorBase):
 
-    def __init__(self, config) -> None:
-        super().__init__()
+    def __init__(self, config, prompt_type) -> None:
+        super().__init__(prompt_type)
         self.state_manager = SudokuStateManager()
         self.llm_agent = LLMAgent(config)
         self.parser = LLMReplyParserForSudoku()
@@ -132,7 +142,7 @@ class TreeOfThoughtExecutorForSudoku(TreeOfThoughtExecutorBase):
             self.state_manager,
             config.chatbot_max_context_length,
             config.chatbot_include_chat_history_in_query,
-            PromptGenType.RuleBased
+            self.prompt_type
         )
 
     def _should_repeat(self, llm_reply):
