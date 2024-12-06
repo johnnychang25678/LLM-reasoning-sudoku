@@ -63,7 +63,7 @@ class SudokuPrompter(PrompterBase):
         elif state_check_result.is_valid:
             new_msg_tmpl = """Please try to solve this Sudoku puzzle {}, return {} possible solutions.
             In the next solutions you return, please just fill in a few cells since we will work together to solve the puzzle in multiple rounds of conversation. 
-            Please return your solutions strictly following valid JSON format in the following JSON schema: {{ "solutions": [{{ "rows": [] }}] }}"""
+            Please return your solutions strictly following valid JSON format in the following JSON schema: {{ "solutions": [{{ "rows": [] }}] }}, for example: {{ "solutions": [{{ "rows": [[1, 2, 3], [4, 5, 6], [7, 8, 9]] }}] }}"""
             role, new_msg_content = "user", new_msg_tmpl.format(
                 state_check_result.rows, HyperParams.LeafCount)
             solution_found, curr_state_is_valid = False, True
@@ -71,7 +71,7 @@ class SudokuPrompter(PrompterBase):
             new_msg_tmpl = """Unfortunately there is an error in your current solution {}. {} Let us try again starting from this Sudoku board: {}. Please return {} possible solutions. 
             In the next solution you return, please just fill in a few cells since we will work together to solve the puzzle in multiple rounds of conversation. 
             We do NOT expect you to solve the problem in a single shot. You can return intermediate solutions with unfilled cells marked by "*". 
-            Please return your solution strictly following valid JSON format in the following JSON schema: {{ "rows": [] }}"""
+            Please return your solution strictly following valid JSON format in the following JSON schema: {{ "solutions": [{{ "rows": [] }}] }}, for example: {{ "solutions": [{{ "rows": [[1, 2, 3], [4, 5, 6], [7, 8, 9]] }}] }}"""
             role, new_msg_content = "user", new_msg_tmpl.format(json.dumps(self.state_manager.get_current_state().tolist()),
                                                                 state_check_result.message,
                                                                 HyperParams.LeafCount,

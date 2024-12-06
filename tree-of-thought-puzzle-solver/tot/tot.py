@@ -8,6 +8,37 @@ from actors.llm import LLMAgent
 from actors.parser import LLMReplyParserForSudoku
 from actors.prompter import SudokuPrompter
 from ValueModel.Load_Inference import RegressionPredictor
+import pdb
+
+import numpy as np
+
+def numpy_matrices_to_custom_strings(matrices):
+    """
+    Converts a list of NumPy matrices into strings formatted as 
+    [['3', '1', '2'], ['1', '2', '*'], ...].
+    
+    Args:
+        matrices (list of np.ndarray): A list of NumPy 2D arrays.
+        
+    Returns:
+        list of str: A list of string representations of the matrices.
+    """
+    result = []
+    for matrix in matrices:
+        # Convert each matrix to the desired string format
+        matrix_str = "[[" + "], [".join(
+            [", ".join(f"'{str(item)}'" for item in row) for row in matrix]
+        ) + "]]"
+        result.append(matrix_str)
+    return result
+
+# Example usage:
+matrices = [
+    np.array([[3, 1, 2], [1, 2, '*'], ['*', 3, 4]]),
+    np.array([[10, 11], [12, '*']]),
+    np.array([[1]])
+]
+
 
 
 class TreeOfThought(object):
@@ -92,7 +123,11 @@ class TreeOfThoughtExecutorBase(object):
             print("******** run_tot solution:", solution)
             if self.prompt_type == PromptGenType.PolicyModelBased and not is_initial:
                 # TODO: use policy model to pick one
-                predicted_values = self.predictor.predict(solution)
+                # pdb.set_trace()
+                candidate_states = numpy_matrices_to_custom_strings(solution)
+                # print(f"solution: {solution} of type {type(solution)}")
+                predicted_values = self.predictor.predict(candidate_states)
+                # predicted_values = self.predictor.predict(solution)
                 print("values from policy model:", predicted_values)
                 best_solution = solution[0]
                 best_val = predicted_values[0]

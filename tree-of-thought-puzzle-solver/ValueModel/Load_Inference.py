@@ -8,7 +8,7 @@
 from transformers import AutoModel, AutoTokenizer
 import torch
 import torch.nn as nn
-
+import os
 
 class RegressionPredictor:
     def __init__(self):
@@ -43,13 +43,15 @@ class RegressionPredictor:
 
         self.model = RegressionModel(self.base_model)
 
+        os.chdir(os.path.dirname(os.path.abspath(__file__)))
         self.model.regression_head.load_state_dict(
-            torch.load("regression_head.pth"))
+            torch.load("regression_head.pth", map_location=torch.device('mps')))
 
         self.model.eval()
 
-        self.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu")
+        # self.device = torch.device(
+        #     "cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device('mps')
         self.model.to(self.device)
 
     def predict(self, input_texts):
@@ -70,7 +72,7 @@ class RegressionPredictor:
         return predicted_values
 
 
-predictor = RegressionPredictor()
+# predictor = RegressionPredictor()
 
 # input_texts = ["[['1', '3', '2'], ['2', '1', '3'], ['3', '1', '3']]", "[['1', '1', '1'], ['2', '1', '3'], ['3', '3', '3']]"]
 

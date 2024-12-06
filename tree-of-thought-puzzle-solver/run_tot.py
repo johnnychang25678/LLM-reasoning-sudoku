@@ -4,7 +4,7 @@ from common.enums import *
 from tot.tot import TreeOfThought
 import json
 import argparse
-
+import os
 #
 # Example Sudoku problems:
 # '[[*, 3, 1], [*, 2, 3], [3, *, 2]]'
@@ -14,6 +14,10 @@ import argparse
 from dotenv import load_dotenv
 
 load_dotenv(".env")
+
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+print(os.getcwd())
+print(os.listdir())
 
 
 if __name__ == "__main__":
@@ -49,7 +53,8 @@ if __name__ == "__main__":
                 print("")
                 print("Success :", success)
                 print("Solution:", solution)
-    except FileNotFoundError:
+    except FileNotFoundError as e:
+        print(e)
         print(f"Error: The file '{args.data}' was not found.")
         sys.exit(1)  # Exit the program with a non-zero status code
     except json.JSONDecodeError:

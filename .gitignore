@@ -1,5 +1,5 @@
 *.env
-mcts_results
+mcts_results*
 *.zip
 
 __pycache__
