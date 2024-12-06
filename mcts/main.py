@@ -5,6 +5,7 @@ import os
 import csv
 import random
 from typing import List
+from mcts.LogHandler.GraphingLogHandler import MCTSVisualizerHandler
 from mcts.MctsController import MctsController
 from mcts.MctsObserver.ExportTreeObserver import ExportTreeObserver
 from mcts.Visitor import MCTSVisitor
@@ -31,7 +32,7 @@ def setup_logging(log_file: str):
     fh = logging.FileHandler(log_file)
     fh.setFormatter(formatter)
     logger.addHandler(fh)
-
+    
 def load_initial_states(json_file: str) -> List[List[List[str]]]:
     with open(json_file, 'r') as file:
         data = json.load(file)

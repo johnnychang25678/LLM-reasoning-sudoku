@@ -8,7 +8,7 @@ from mcts.Node import Node, NodeFactory
 from typing import List
 import logging
 logger = logging.getLogger(__name__)
-
+from mcts.LogHandler.logger import viz_logger
 class MctsController:
     def __init__(
             self, 
@@ -30,6 +30,7 @@ class MctsController:
         logger.info(f"Starting MCTS with {iterations} iterations")
         logger.info(f"Initial state: {initial_state}")
         root_node = self.node_factory.make_node(initial_state)
+        viz_logger.visualization({})
         return self._run(root_node, iterations)
 
     def _run(self, root_node: Node, iterations: int):
