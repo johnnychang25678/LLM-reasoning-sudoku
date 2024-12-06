@@ -7,6 +7,7 @@ from actors.state import SudokuStateManager
 from actors.llm import LLMAgent
 from actors.parser import LLMReplyParserForSudoku
 from actors.prompter import SudokuPrompter
+from ValueModel.Load_Inference import RegressionPredictor
 
 
 class TreeOfThought(object):
@@ -67,6 +68,10 @@ class TreeOfThoughtExecutorBase(object):
         self.conversation_history = ""
         self.state_manager_visit_count_map = {}
         self.prompt_type = prompt_type
+        if self.prompt_type == PromptGenType.PolicyModelBased:
+            print("load predictor start...")
+            self.predictor = RegressionPredictor()
+            print("load predictor done...")
 
     def run(self, user_input, max_num_rounds):
         messages = self.prompter.generate_initial_prompt(user_input)
@@ -87,7 +92,19 @@ class TreeOfThoughtExecutorBase(object):
             print("******** run_tot solution:", solution)
             if self.prompt_type == PromptGenType.PolicyModelBased and not is_initial:
                 # TODO: use policy model to pick one
-                solution = solution[0]
+                predicted_values = self.predictor.predict(solution)
+                print("values from policy model:", predicted_values)
+                best_solution = solution[0]
+                best_val = predicted_values[0]
+                for i in range(len(solution)):
+                    val = predicted_values[i]
+                    sol = solution[i]
+                    if val > best_val:
+                        best_solution = sol
+                        best_val = val
+
+                print("best value:", best_val, "best sol:", best_solution)
+                solution = best_solution
 
             if not success:
                 print("Failed to extract solution from the reply, will retry")
