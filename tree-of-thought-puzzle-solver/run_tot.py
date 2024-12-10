@@ -5,6 +5,8 @@ from tot.tot import TreeOfThought
 import json
 import argparse
 import os
+import time
+
 #
 # Example Sudoku problems:
 # '[[*, 3, 1], [*, 2, 3], [3, *, 2]]'
@@ -45,16 +47,27 @@ if __name__ == "__main__":
     try:
         with open(args.data) as f:
             sudokus = json.load(f)
+            times = []  # list to store the time taken for each sudoku if solved
             for sudoku in sudokus:
                 prompt = initial_prompt + " " + sudoku + " " + \
                     "where * represents a cell to be filled in."
-                # print("ppp", prompt)
+                start_time = time.time()
                 success, solution = tot.run(prompt)
-                print("")
+                end_time = time.time()
+                if success:
+                    times.append(end_time - start_time)
+
                 print("Success :", success)
                 print("Solution:", solution)
-    except FileNotFoundError as e:
-        print(e)
+
+            if times:
+                average_time = sum(times) / len(times)
+                print("Average solving time: {:.4f} seconds".format(
+                    average_time))
+            else:
+                print("No puzzles were solved, so no average time to compute.")
+
+    except FileNotFoundError:
         print(f"Error: The file '{args.data}' was not found.")
         sys.exit(1)  # Exit the program with a non-zero status code
     except json.JSONDecodeError:
