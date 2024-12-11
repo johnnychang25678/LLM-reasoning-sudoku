@@ -8,7 +8,18 @@ A framework to enhance the reasoning capability of LLM. Based off [Large Languag
 Please refer to our demo video: [https://youtu.be/91Z18zIw19M](https://youtu.be/91Z18zIw19M)
 
 ## Demo
+(Optionally) set up enviroment
+```sh
+python -m venv .venv
+source .venv/bin/activate
 ```
+and install dependencies
+```sh
+pip install -r requirements.txt -r tree-of-thought-puzzle-solver/requirements.txt
+```
+Then run the following:
+
+```sh
 cd tree-of-thought-puzzle-solver
 ```
 touch `config.yaml`
