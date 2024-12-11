@@ -29,7 +29,6 @@ class LLMReplyParserForSudoku(LLMReplyParserBase):
             parse_result = self.extract_sudoku_board_from_solutions(json_obj)
         else:
             parse_result = self.extract_sudoku_board_from_rows(json_obj)
-        print("parse result: ", parse_result)
         return parse_result
 
     def extract_sudoku_board_from_rows(self, sudoku_board_json_obj):

@@ -67,7 +67,8 @@ if __name__ == "__main__":
             else:
                 print("No puzzles were solved, so no average time to compute.")
 
-    except FileNotFoundError:
+    except FileNotFoundError as e:
+        # print("eeeeeeeeeee", e)
         print(f"Error: The file '{args.data}' was not found.")
         sys.exit(1)  # Exit the program with a non-zero status code
     except json.JSONDecodeError:

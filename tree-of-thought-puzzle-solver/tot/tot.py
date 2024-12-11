@@ -15,22 +15,31 @@ import numpy as np
 
 def numpy_matrices_to_custom_strings(matrices):
     """
-    Converts a list of NumPy matrices into strings formatted as 
+    Converts a list of NumPy matrices into strings formatted as:
     [['3', '1', '2'], ['1', '2', '*'], ...].
-
-    Args:
-        matrices (list of np.ndarray): A list of NumPy 2D arrays.
-
-    Returns:
-        list of str: A list of string representations of the matrices.
     """
     result = []
     for matrix in matrices:
-        # Convert each matrix to the desired string format
-        matrix_str = "[[" + "], [".join(
-            [", ".join(f"'{str(item)}'" for item in row) for row in matrix]
-        ) + "]]"
+        # Convert to a NumPy array if it's not already
+        matrix = np.array(matrix)
+
+        # Squeeze to remove any extra dimensions
+        matrix = np.squeeze(matrix)
+
+        # Now we expect matrix to be 2D: (rows, cols)
+        # If there's still a nested structure, flatten each row.
+        rows_str = []
+        for row in matrix:
+            # Ensure row is a 1D array
+            row = np.array(row).flatten()
+            # Convert each element to a quoted string
+            row_str = ", ".join(f"'{str(item)}'" for item in row)
+            rows_str.append(f"[{row_str}]")
+
+        # Join all rows with ", " and wrap in outer brackets
+        matrix_str = "[" + ", ".join(rows_str) + "]"
         result.append(matrix_str)
+
     return result
 
 

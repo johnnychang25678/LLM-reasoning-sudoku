@@ -111,8 +111,8 @@ class SudokuPrompter(PrompterBase):
         ]
         strategy_choice = random.randint(0, len(strategies)-1)
         strategy_chosen = strategies[strategy_choice]
-        print("************** strategy chosen ***************")
-        print(strategy_chosen)
+        # print("************** strategy chosen ***************")
+        # print(strategy_chosen)
 
         if state_check_result.solution_found:
             msg_tmpl = """Fantastic! You have found the solution {}!"""

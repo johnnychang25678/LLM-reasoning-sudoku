@@ -3,6 +3,7 @@
 import torch
 import torch.nn as nn
 from transformers import AutoTokenizer
+import os
 
 
 class LSTMRegressor(nn.Module):
@@ -23,18 +24,27 @@ class LSTMRegressor(nn.Module):
 
 class LSTMPredictor:
     def __init__(self):
+        os.chdir(os.path.dirname(os.path.abspath(__file__)))
         vocab_size = 30522
         embedding_dim = 128
         hidden_dim = 64
         output_dim = 1
         pad_idx = 0
         model_save_path = "lstm_regressor.pth"
-        self.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu")
+
+        # Set device to CPU
+        self.device = torch.device('cpu')
+
+        # Initialize the model
         self.loaded_model = LSTMRegressor(
-            vocab_size, embedding_dim, hidden_dim, output_dim, pad_idx).to(self.device)
-        self.loaded_model.load_state_dict(torch.load(model_save_path))
+            vocab_size, embedding_dim, hidden_dim, output_dim, pad_idx
+        ).to(self.device)
+
+        # Load the state dict with map_location set to CPU
+        state_dict = torch.load(model_save_path, map_location=self.device)
+        self.loaded_model.load_state_dict(state_dict)
         self.loaded_model.eval()
+
         print("Model loaded successfully.")
         self.tokenizer = AutoTokenizer.from_pretrained(
             "distilbert-base-uncased")
@@ -64,7 +74,10 @@ class LSTMPredictor:
 
         with torch.no_grad():
             predictions = self.loaded_model(input_ids, attention_mask)
-            return predictions.squeeze().tolist()
+            value = predictions.squeeze().tolist()
+            if not isinstance(value, list):
+                value = [value]
+            return value
 
 
 # example_states = [
