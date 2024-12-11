@@ -48,7 +48,23 @@ python run_tot.py -data "data/benchmarks/sudoku/3x3_sudoku_puzzles.json" -prompt
 
 ### How to generate training data with MCTS
 
-TODO
+From project root, run
+```sh
+python -m mcts.main
+```
+```
+usage: main.py [-h] [--input INPUT] [--output OUTPUT] [--iterations ITERATIONS] [--shuffle SHUFFLE]
+
+Run MCTS on Sudoku puzzles and export results.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --input INPUT         Path to JSON file containing initial Sudoku states. If not provided, a default state will be used.
+  --output OUTPUT       Path to the output directory.
+  --iterations ITERATIONS
+                        Number of MCTS iterations to perform per initial state.
+  --shuffle SHUFFLE     Shuffle the initial states before running MCTS.
+```
 
 ### How to train Value Model
 
