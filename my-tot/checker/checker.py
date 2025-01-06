@@ -43,6 +43,8 @@ class SudokuChecker(Checker):
                 cell = board[r][c]
                 try:
                     num = int(cell)
+                    if not (1 <= num <= self.puzzle_size):
+                        return False, f"Cell [{r}][{c}] is filled with {num}, which is not in the range of 1 to {self.puzzle_size} for {self.d} sudoku."
                     if prev_board[r][c] != "*":
                         return False, f"Cell [{r}][{c}] has been filled with {prev_board[r][c]} previously. We cannot set it to a diffent number."
                     if num in row_sets[r]:
