@@ -30,6 +30,7 @@ class StateParser:
         # string to json
         sudoku_board_json_obj = StateParser._extract_json_from_text_string(
             llm_response)
+        print("!!!!!!!!1parse single sudoku_board_json_obj", sudoku_board_json_obj)
         if sudoku_board_json_obj is None:
             return None
 
@@ -112,11 +113,12 @@ class StateParser:
     @staticmethod
     def _extract_json_from_text_string(text_str: str):
         """extract json from string, return None if error"""
+        print("aaaaaaaaa ", text_str)
         try:
             lp_idx = text_str.index('{')
             rp_idx = text_str.rindex('}')
             json_str = text_str[lp_idx:rp_idx+1]
-            # print("extract_json_from_text_string", json_str)
+            print("extract_json_from_text_string", json_str)
             json_str = json_str.replace("'", '"')
             json_obj = json.loads(json_str)
             return json_obj

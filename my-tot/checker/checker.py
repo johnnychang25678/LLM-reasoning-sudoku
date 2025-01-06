@@ -24,7 +24,7 @@ class SudokuChecker(Checker):
         self.d = f"{self.puzzle_size}x{self.puzzle_size}"
 
     def is_valid(self, prev_state: State, state: State) -> Tuple[bool, str]:
-        prev_board = prev_state.get_board()
+        prev_board = None if not prev_state else prev_state.get_board()
         board = state.get_board()
         # 1: check size
         if len(board) != self.puzzle_size:
@@ -45,7 +45,8 @@ class SudokuChecker(Checker):
                     num = int(cell)
                     if not (1 <= num <= self.puzzle_size):
                         return False, f"Cell [{r}][{c}] is filled with {num}, which is not in the range of 1 to {self.puzzle_size} for {self.d} sudoku."
-                    if prev_board[r][c] != "*":
+                    if prev_board and prev_board[r][c] != "*" and prev_board[r][c] != cell:
+                        # for example, prev_board = 1 -> cell = 2
                         return False, f"Cell [{r}][{c}] has been filled with {prev_board[r][c]} previously. We cannot set it to a diffent number."
                     if num in row_sets[r]:
                         return False, f"There is duplicate number {num} in row {r + 1}."
