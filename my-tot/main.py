@@ -273,8 +273,8 @@ class TreeOfThoughtController:
 
 
 def main():
-    model = os.getenv("OPENAI_MODEL")
-    model_version = os.getenv("OPENAI_API_VERSION")
+    deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT")
+    api_version = os.getenv("AZURE_OPENAI_API_VERSION")
     temperature = int(os.getenv("TEMPERATURE"))
     max_tokens = int(os.getenv("MAX_TOKENS"))
     max_rounds = int(os.getenv("MAX_ROUNDS"))
@@ -305,7 +305,7 @@ def main():
 
     # prompter
     prompter = AzureOpenAIPrompter(
-        model, model_version, temperature, max_tokens, leaf_count)
+        deployment, api_version, temperature, max_tokens, leaf_count)
 
     # value model
     value_model = None
