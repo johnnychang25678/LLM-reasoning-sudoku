@@ -1,11 +1,28 @@
 from abc import ABC, abstractmethod
+from observer.observer import Observer
+from typing import List
 from langchain_openai import AzureChatOpenAI
 from langchain.schema import HumanMessage
 
 
 class Prompter(ABC):
     def __init__(self):
-        super().__init__()
+        self.observers: List[Observer] = []
+        self.prompt_count = 0
+        self.input_token_count = 0
+
+    def add_observer(self, observer: Observer):
+        self.observers.append(observer)
+
+    def notify_observers(self, message: str):
+        for observer in self.observers:
+            observer.notify(message)
+
+    def get_prompt_count(self):
+        return self.prompt_count
+
+    def get_input_token_count(self):
+        return self.input_token_count
 
     @abstractmethod
     def prompt(prompt: str):
@@ -26,10 +43,12 @@ class AzureOpenAIPrompter(Prompter):
         )
 
     def prompt(self, prompt):
-        # print("prompt: ", prompt)
         msgs = []
         msgs.append(HumanMessage(content=prompt))
         res = self.chatbot.invoke(msgs)
         reply = res.content
-        print("llm reply: ", reply)
+        token_count = res.usage_metadata["input_tokens"]
+        self.notify_observers(f"llm reply: {reply}")
+        self.prompt_count += 1
+        self.input_token_count += token_count
         return reply

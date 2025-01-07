@@ -1,11 +1,19 @@
 from abc import ABC, abstractmethod
-from typing import Tuple
+from typing import Tuple, List
+from observer.observer import Observer
 from state.state import State
 
 
 class Checker(ABC):
     def __init__(self):
-        pass
+        self.observers: List[Observer] = []
+
+    def add_observer(self, observer: Observer):
+        self.observers.append(observer)
+
+    def notify_observers(self, message: str):
+        for observer in self.observers:
+            observer.notify(message)
 
     @abstractmethod
     def is_valid(self, state: State) -> Tuple[bool, str]:
@@ -14,6 +22,7 @@ class Checker(ABC):
 
     @abstractmethod
     def is_solved(self, state: State) -> bool:
+        """Doesn't check validity. Only call this after calling is_valid"""
         pass
 
 
@@ -63,7 +72,6 @@ class SudokuChecker(Checker):
         return True, ""
 
     def is_solved(self, state: State) -> bool:
-        """Only call this after calling is_valid"""
         board = state.get_board()
         for r in range(self.puzzle_size):
             for c in range(self.puzzle_size):

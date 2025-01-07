@@ -3,9 +3,12 @@ import os
 import random
 import argparse
 import json
+import time
+
 from prompter.prompter import Prompter, AzureOpenAIPrompter
 from checker.checker import Checker, SudokuChecker
 from state.state import State, StateParser
+from observer.observer import Observer, LoggingObserver
 from typing import List, Union
 
 
@@ -68,6 +71,21 @@ class TreeOfThoughtController:
         self.states: List[State] = []  # manage current states
         self.history: List[State] = []  # for memory
 
+        # observers
+        self.observers: List[Observer] = []
+
+    def add_observer(self, observer: Observer):
+        self.observers.append(observer)
+        self.prompter.add_observer(observer)
+        self.checker.add_observer(observer)
+
+    def remove_observer(self, observer: Observer):
+        self.observers.remove(observer)
+
+    def notify_observers(self, message: str):
+        for observer in self.observers:
+            observer.notify(message)
+
     # state management
     def get_latest_state(self) -> Union[State, None]:
         if len(self.states) == 0:
@@ -77,8 +95,14 @@ class TreeOfThoughtController:
     def add_state(self, state: State):
         self.states.append(state)
 
+    # memory
     def add_history(self, state: State):
         self.history.append(state)
+
+    def cleanup(self):
+        """cleanup states before new puzzle"""
+        self.states = []
+        self.history = []
 
     def rollback_state(self):
         """pop current state and increment prev state visit by 1"""
@@ -96,39 +120,50 @@ class TreeOfThoughtController:
 
     # runner: given puzzles in json, run ToT
     def run(self, puzzles):
-        print("leaf count: ", self.leaf_count)
+        self.notify_observers("====== start controller run ======")
+        self.notify_observers(f"leaf count: {self.leaf_count}")
+        total_puzzles = len(puzzles)
+        solved_puzzles = 0
+        times = []  # list to store the time taken for each sudoku if solved
+
         for puzzle in puzzles:
-            print("puzzle:", puzzle)
+            self.notify_observers(f"=== puzzle: {puzzle} ===\n")
+            self.cleanup()
             round = 1
             unexpected_error_count = 0
             solved = False
+            prompt = ""
             if self.leaf_count == 1:
-                initial_prompt = PromptTemplate.INITIAL_SINGLE_LEAF.format(
+                prompt = PromptTemplate.INITIAL_SINGLE_LEAF.format(
                     self.puzzle_size,
                     self.puzzle_size,
                     puzzle
                 )
             else:
-                initial_prompt = PromptTemplate.INITIAL_MULTI_LEAF.format(
+                prompt = PromptTemplate.INITIAL_MULTI_LEAF.format(
                     self.puzzle_size,
                     self.puzzle_size,
                     self.leaf_count,
                     puzzle
                 )
 
-            prompter_response = self.prompter.prompt(initial_prompt)
+            start_time = time.time()
+            prompter_response = self.prompter.prompt(prompt)
+            solution = None
             while round < self.max_rounds and not solved and unexpected_error_count < 5:
                 if self.leaf_count == 1:
                     state = StateParser.parse_single(prompter_response)
                     if not state:
-                        # should retry, do not add to round
+                        # should retry
                         unexpected_error_count += 1
+                        prompter_response = self.prompter.prompt(prompt)
                         continue
                 else:
                     states = StateParser.parse_multi(prompter_response)
                     if not states:
-                        # should retry, do not add to round
+                        # should retry
                         unexpected_error_count += 1
+                        prompter_response = self.prompter.prompt(prompt)
                         continue
 
                     if self.value_model:
@@ -153,7 +188,7 @@ class TreeOfThoughtController:
                     # valid, should push state to states
                     self.add_state(state)
                     if solved:
-                        # TODO: print states for observer
+                        solution = str(state)
                         break
 
                 # not solved, keep going deeper
@@ -196,26 +231,48 @@ class TreeOfThoughtController:
                     prev_states = [str(s) for s in self.history]
                     prompt = PromptTemplate.MEMORY.format(prompt, prev_states)
 
-                print("sending prompt:", prompt)
+                self.notify_observers(f"sending prompt: {prompt}")
                 prompter_response = self.prompter.prompt(prompt)
 
                 round += 1
 
             # out of while loop
+            end_time = time.time()
+
+            self.notify_observers(f"=== puzzle: {puzzle} ===")
             if solved:
-                print(f"solved in {round} rounds")
+                solved_time = end_time - start_time
+                self.notify_observers(
+                    f"solved {puzzle} in ** {round} ** rounds, solution: {solution}")
+                self.notify_observers(
+                    "solved in {:.4f} seconds".format(solved_time))
+                times.append(end_time - start_time)
+                solved_puzzles += 1
             elif unexpected_error_count >= 5:
-                print(
+                self.notify_observers(
                     f"something went wrong... unexpected error occurred {unexpected_error_count} times")
             else:
-                print(
-                    f"unable to solve in {round} rounds of conversation with LLM")
+                self.notify_observers(
+                    f"unable to solve {puzzle} in {round} rounds of conversation with LLM")
 
-            print(f"unexpected error occurred {unexpected_error_count} times")
+            self.notify_observers(
+                f"unexpected error occurred {unexpected_error_count} times")
+
+        self.notify_observers("\n=== SUMMARY ===")
+        self.notify_observers(
+            f"solved {solved_puzzles} puzzles out of {total_puzzles} puzzles")
+
+        if len(times) > 0:
+            average_time = sum(times) / len(times)
+            self.notify_observers("Average solving time: {:.4f} seconds".format(
+                average_time))
+        self.notify_observers(
+            f"Total LLM calls: {self.prompter.get_prompt_count()}")
+        self.notify_observers(
+            f"Total input tokens: {self.prompter.get_input_token_count()}")
 
 
 def main():
-    # prompter
     model = os.getenv("OPENAI_MODEL")
     model_version = os.getenv("OPENAI_API_VERSION")
     temperature = int(os.getenv("TEMPERATURE"))
@@ -223,13 +280,6 @@ def main():
     max_rounds = int(os.getenv("MAX_ROUNDS"))
     # how many states should each step generate
     leaf_count = int(os.getenv("LEAF_COUNT"))
-    prompter = AzureOpenAIPrompter(
-        model, model_version, temperature, max_tokens, leaf_count)
-
-    puzzle_size = int(os.getenv("PUZZLE_SIZE"))  # should match given data
-
-    # checker
-    checker = SudokuChecker(puzzle_size)
 
     # memory module
     enable_memory = bool(os.getenv("ENABLE_MEMORY"))
@@ -239,10 +289,23 @@ def main():
 
     # Add arguments
     parser.add_argument("-data", required=True, type=str, help="data path")
+    parser.add_argument("-puzzle_size", required=True, type=int,
+                        help="3 for 3x3, 4 for 4x4, must match given data")
     parser.add_argument("-type", required=True,
                         choices=["rule", "value"])
+    parser.add_argument("-log", type=str,
+                        help="file path for logging file")
 
     args = parser.parse_args()
+
+    puzzle_size = args.puzzle_size
+
+    # checker
+    checker = SudokuChecker(puzzle_size)
+
+    # prompter
+    prompter = AzureOpenAIPrompter(
+        model, model_version, temperature, max_tokens, leaf_count)
 
     # value model
     value_model = None
@@ -259,6 +322,8 @@ def main():
         puzzle_size=puzzle_size,
         max_rounds=max_rounds
     )
+
+    totController.add_observer(LoggingObserver(log_file=args.log))
 
     with open(args.data) as f:
         puzzles = json.load(f)
